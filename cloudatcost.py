@@ -47,25 +47,40 @@ class api():
             "referer": "https://panel.cloudatcost.com/login.php"}
         payload = {"username": self.email, "password": self.password, "submit": "Login"}
         with requests.Session() as s:
+            account_resources = dict()
+
             s.get('https://panel.cloudatcost.com', headers=headers)
             s.post("https://panel.cloudatcost.com/manage-check2.php", headers=s.headers, data=payload)
+
             soup_acount_number = BeautifulSoup(s.get("https://panel.cloudatcost.com").content, 'html5lib')
-            account_resources = dict()
-            for i in soup_acount_number.find_all("a", {"class": "btn btn-sm btn-default"}):
-                accountnumber = str(i).split('onclick="cloudpro(')[0].split('addNote("')[-1].split('-cloudpro-')[0].rsplit("c")[1]
+            for i in soup_acount_number.find_all("div", class_="header-menu"):
+                for i in i.find_all('div'):
+                    if 'onclick="cloudpro(' in str(i):
+                        accountnumber = str(i).split('onclick="cloudpro(')[1].rsplit(")")[0]
+
             soup_acount_resources = BeautifulSoup(s.get("https://panel.cloudatcost.com/panel/_config/pop/cloudpro.php?CNM={}".format(accountnumber)).content, 'html5lib')
-            for i in soup_acount_resources.find_all("table"):
-                for i in i.find_all("tr"):
-                    for i in i.find_all('td'):
-                        if "CPU" in str(i):
-                            totalcpus = str(i).split(" CPU:")[0].rsplit('">')[1]
-                        if "RAM" in str(i):
-                            totalram = str(i).split(" MB RAM:")[0].rsplit('">')[1]
-                        if " SSD:" in str(i):
-                            totalstorage = str(i).split(" SSD:")[0].rsplit('">')[1].split(" ")[0]
-                account_resources['Available'] = {"cpus": totalcpus, "ram": totalram, "storage": totalstorage}
+            for i in soup_acount_resources.find_all(['tr', 'td']):
+                if " CPU" in str(i):
+                    totalcpus = str(i).split(" CPU:")[0].rsplit('">')[1]
+                if "RAM" in str(i):
+                    totalram = str(i).split(" MB RAM:")[0].rsplit('">')[1]
+                if " SSD:" in str(i):
+                    totalstorage = str(i).split(" SSD:")[0].rsplit('">')[1].split(" ")[0]
+            for i in soup_acount_resources.find_all(class_=re.compile(".*btn btn-small btn-default*.")):
+                aviable = str(i).split('"{}"'.format(accountnumber))[1].rsplit(")")[0].replace('", ', '').replace('"', ' ').replace(",", "").strip().rstrip().split()
+
+        account_resources['Available'] = {
+            "cpus": aviable[0],
+            "ram": aviable[1],
+            "storage": aviable[2]
+        }
+
+        account_resources['Total'] = {
+            "cpus": totalcpus,
+            "ram": totalram,
+            "storage": totalstorage
+        }
         return account_resources
 
-
 data = api("enter your email here but leave the quotes", "enter yourpassword in here but leave the quotes")
-pprint(data.listservers())
+pprint(data.getresources())
