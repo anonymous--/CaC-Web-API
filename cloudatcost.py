@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from pprint import pprint
+
 import requests
 from bs4 import BeautifulSoup
-from pprint import pprint
 
 
 class api():
